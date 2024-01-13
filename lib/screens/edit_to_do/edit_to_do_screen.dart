@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
 
 class EditToDoScreen extends StatefulWidget {
-  const EditToDoScreen({super.key});
+  final String title;
+  const EditToDoScreen({super.key, required this.title});
 
   @override
   State<EditToDoScreen> createState() => _EditToDoScreenState();
 }
 
 class _EditToDoScreenState extends State<EditToDoScreen> {
+  TextEditingController titleController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+
+    titleController.text = widget.title;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text("Create to do"),
+        title: Text("Edit to do"),
       ),
       body: Form(
         key: _formKey,
@@ -24,6 +34,7 @@ class _EditToDoScreenState extends State<EditToDoScreen> {
           child: Column(
             children: [
               TextFormField(
+                controller: titleController,
                 decoration: InputDecoration(labelText: "Title"),
               ),
               SizedBox(height: 20),
