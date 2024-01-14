@@ -1,0 +1,4 @@
+#Sun Jan 14 12:16:48 MYT 2024
+base.0=D\:\\Projects\\Mahiran Digital\\todo-flutter\\build\\app\\intermediates\\dex\\debug\\mergeDexDebug\\classes.dex
+path.0=classes.dex
+renamed.0=classes.dex

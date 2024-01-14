@@ -1,7 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:to_do_mobile/constant.dart';
+import 'package:to_do_mobile/models/todo.dart';
 import 'package:to_do_mobile/screens/create_to_do/create_to_do_screen.dart';
 import 'package:to_do_mobile/screens/home_page/components/item_container.dart';
+import 'package:http/http.dart' as http;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -22,7 +28,48 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-   
+  late SharedPreferences prefs;
+  late Future<List<Todo>> futureTodos;
+
+  Future<List<Todo>> fetchTodos() async {
+    prefs = await SharedPreferences.getInstance();
+    final int? uid = prefs.getInt('UID');
+
+    //prepare request
+    var request = http.MultipartRequest('GET', Uri.parse('$BASE_URL/readAll'));
+    //add headers
+    request.headers
+        .addAll({'Accept': 'application/json', 'user-id': uid.toString()});
+    //send request to server
+    http.StreamedResponse response = await request.send();
+
+    if (response.statusCode == 200) {
+      final data = await response.stream.bytesToString();
+      Map map = jsonDecode(data) as Map<String, dynamic>;
+      List<dynamic> list = map['data'];
+      //convert each item in the list into a Todo object
+      List<Todo> todos = list.map((item) => Todo.fromJson(item)).toList();
+
+      return todos;
+    } else {
+      print(response.reasonPhrase);
+    }
+
+    return [];
+  }
+
+  void _createCallback(Todo? newTodo) {
+    setState(() {
+      futureTodos = fetchTodos();
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    futureTodos = fetchTodos();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +80,29 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Container(
         width: double.infinity,
-        // listview builder: to enable the list scrollable
-        child: ListView.builder(
-            itemCount: 31,
-            itemBuilder: (context, index) {
-              return ItemContainer();
-            }),
+        child: FutureBuilder(
+          future: futureTodos,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return ListView.builder(
+                  itemCount: snapshot.data?.length ?? 0,
+                  itemBuilder: (context, index) {
+                    Todo todo = snapshot.data![index];
+                    return ItemContainer(
+                      todo: todo,
+                      callback: () => _createCallback(null),
+                    );
+                  });
+            } else if (snapshot.hasError) {
+              return Text('Error :  ${snapshot.error}');
+            }
+
+            //default widget
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -46,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
             context,
             CupertinoPageRoute(
               builder: (context) {
-                return CreateToDoScreen();
+                return CreateToDoScreen(callback: _createCallback);
               },
             ),
           );
